@@ -1,0 +1,38 @@
+name: DevOps + IA (Diagnóstico Assistido)
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy-with-ai-diagnosis:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Permissões
+        run: chmod +x scripts/*.sh
+
+      - name: Executar deploy (pode falhar)
+        id: deploy
+        run: |
+          set +e
+          ./scripts/deploy.sh > deploy.log 2>&1
+          echo "status=$?" >> $GITHUB_OUTPUT
+
+      - name: Mostrar deploy.log
+        run: |
+          echo "====== deploy.log ======"
+          cat deploy.log
+
+      - name: IA – Análise Assistida (SEMPRE EXECUTA)
+        run: |
+          bash ./scripts/ai_analyze.sh deploy.log
+
+      - name: Falhar pipeline se deploy falhou
+        if: steps.deploy.outputs.status != '0'
+        run: |
+          echo "Deploy falhou conforme esperado"
+          exit 1
